@@ -1,5 +1,8 @@
 # IntelliJ project
 .idea
+*.iml
+# From this project mainly
+*.mp4
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

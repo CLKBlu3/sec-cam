@@ -11,10 +11,10 @@ def list_ports():
     working_ports = []
     available_ports = []
     while is_working:
-        camera = cv.cv2.VideoCapture(dev_port)
+        camera = cv.VideoCapture(dev_port)
         if not camera.isOpened():
+            # Deixem de buscar un port disponible
             is_working = False
-            print("Port %s is not working." % dev_port)
         else:
             is_reading, img = camera.read()
             w = camera.get(3)

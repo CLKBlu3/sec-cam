@@ -1,7 +1,7 @@
 import cv2 as cv
 import time
 import datetime
-from cv2.cv2 import VideoCapture, VideoWriter
+from cv2 import VideoCapture, VideoWriter
 import winsound
 
 from seccam.utils import list_ports
@@ -10,7 +10,7 @@ from seccam.utils import list_ports
 class Camera:
     _seconds_to_record_after_raising_alarm: int
     _frame_size: (int, int)
-    _fourcc = cv.cv2.VideoWriter_fourcc(*"mp4v")
+    _fourcc = cv.VideoWriter_fourcc(*"mp4v")
     _move_detected: bool
     _record_started: bool
     _output_video: VideoWriter
@@ -24,19 +24,21 @@ class Camera:
             raise ValueError("The provided tracked_bot_file is not a str")
         self._seconds_to_record_after_raising_alarm = seconds_to_record
         av_ports, wrk_ports = list_ports()
-        if len(av_ports) == 0 or wrk_ports == 0:
+        if len(av_ports) + len(wrk_ports) == 0:
             raise IOError("No available ports or working ports where found. Exiting with errors")
         # Open first wrk_port in the list. Because it's in there, we know it will be okay to use it for the loop!
-        cam = cv.cv2.VideoCapture(wrk_ports[0])
+        cam = cv.VideoCapture(wrk_ports[0])
         self._frame_size = (int(cam.get(3)), int(cam.get(4)))
         self._move_detected = False
         self._record_started = False
         while cam.isOpened():
+            print("camera is recording")
             frame, movement = self.check_for_movement(cam)
+            cv.imshow("Security Camera", frame)
             if movement:
                 self._move_detected = True
                 self.save_video()
-            if cv.cv2.waitKey(10) == ord('q'):
+            if cv.waitKey(10) == ord('q'):
                 break
 
         self.close_all_frames([cam])
@@ -50,7 +52,7 @@ class Camera:
 
         for frame in frames:
             frame.release()
-        cv.cv2.destroyAllWindows()
+        cv.destroyAllWindows()
         return
 
     def check_for_movement(self, camera: VideoCapture):
@@ -63,20 +65,20 @@ class Camera:
         movement = False
         ret, frame1 = camera.read()
         ret, frame2 = camera.read()
-        diff = cv.cv2.absdiff(frame1, frame2)
+        diff = cv.absdiff(frame1, frame2)
         # Turn diff into gray scale
-        gray = cv.cv2.cvtColor(diff, cv.cv2.COLOR_RGB2GRAY)
+        gray = cv.cvtColor(diff, cv.COLOR_RGB2GRAY)
         # apply gaussian blur?
-        blur = cv.cv2.GaussianBlur(gray, (5, 5), 0)
-        _, threshold = cv.cv2.threshold(blur, 20, 255, cv.cv2.THRESH_BINARY)
-        dilated = cv.cv2.dilate(threshold, None, iterations=3)
-        contours, _ = cv.cv2.findContours(dilated, cv.cv2.RETR_TREE, cv.cv2.CHAIN_APPROX_SIMPLE)
+        blur = cv.GaussianBlur(gray, (5, 5), 0)
+        _, threshold = cv.threshold(blur, 20, 255, cv.THRESH_BINARY)
+        dilated = cv.dilate(threshold, None, iterations=3)
+        contours, _ = cv.findContours(dilated, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
         # cv2.drawContours(frame1, contours, -1, (0, 255, 0), 2)
         for c in contours:
-            if cv.cv2.contourArea(c) < 5000:
+            if cv.contourArea(c) < 5000:
                 continue
-            x, y, w, h = cv.cv2.boundingRect(c)
-            cv.cv2.rectangle(frame1, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            x, y, w, h = cv.boundingRect(c)
+            cv.rectangle(frame1, (x, y), (x + w, y + h), (0, 255, 0), 2)
             # Movement detected, raise alarm
             winsound.PlaySound('../sources/alarm.wav', winsound.SND_ASYNC)
             movement = True
@@ -88,7 +90,8 @@ class Camera:
         current_time = datetime.datetime.now().strftime("%d-%m-%Y-%H-%M-%S")
         alarm_stop_time: time
         if not self._record_started:
-            self._output_video = cv.cv2.VideoWriter(f"{current_time}.mp4", self._fourcc, 20, self._frame_size)
+            # Això no pot estar bé. En algún cas es podria donar que _output_video l'accedeixin varies funcions...
+            self._output_video = cv.VideoWriter(f"{current_time}.mp4", self._fourcc, 20, self._frame_size)
             # Start recording!
             self._record_started = True
             alarm_stop_time = time.time()
