@@ -32,12 +32,16 @@ class Camera:
         self._move_detected = False
         self._record_started = False
         while cam.isOpened():
-            print("camera is recording")
             frame, movement = self.check_for_movement(cam)
+            # Fliping the image as said in question
+            frame = cv.flip(frame, 1)
             cv.imshow("Security Camera", frame)
             if movement:
                 self._move_detected = True
-                self.save_video()
+                # Movement detected, raise alarm
+                winsound.PlaySound('/sources/alarm.wav', winsound.SND_ASYNC)
+                # Save video is not working properly.
+                # self.save_video()
             if cv.waitKey(10) == ord('q'):
                 break
 
@@ -79,8 +83,6 @@ class Camera:
                 continue
             x, y, w, h = cv.boundingRect(c)
             cv.rectangle(frame1, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            # Movement detected, raise alarm
-            winsound.PlaySound('../sources/alarm.wav', winsound.SND_ASYNC)
             movement = True
 
         # We return a frame to display
